@@ -22,6 +22,42 @@ function FeedbackDetails() {
       });
   }, []);
 
+  const calculateOriginalAverage = () => {
+    if (!filteredFeedback.length) return 0;
+    
+    const allRatings = filteredFeedback.flatMap(fb => 
+      Object.values(fb.feedback)
+        .filter(response => typeof response.answer === 'number')
+        .map(response => response.answer)
+    );
+    
+    return (allRatings.reduce((sum, val) => sum + val, 0) / allRatings.length).toFixed(2);
+  };
+
+
+  const calculateAdjustedAverage = () => {
+    if (!filteredFeedback.length) return 0;
+
+    const adjustedScores = filteredFeedback.map(fb => {
+      // Extract variables from feedback
+      const originalScore = calculateOriginalAverage()*0.5;
+      const attendance = fb.attendance;
+      const cgpa = fb.cgpa;
+      const timeTaken = fb.timeTaken/60;
+      const weights = { w1: 0.4, w2: 0.35, w3: 0.25 };
+
+      // Apply formula: (1 + w1.ai/100 + w2.SGPAi/10 + w3.timei/10)
+      const adjustmentFactor = 1 + 
+        (weights.w1 * attendance / 100) + 
+        (weights.w2 * cgpa / 10) + 
+        (weights.w3 * timeTaken / 10);
+
+      return originalScore * adjustmentFactor;
+    });
+
+    return (adjustedScores.reduce((sum, val) => sum + val, 0) / adjustedScores.length).toFixed(2);
+  };
+
   // Get unique courses
   const courses = [...new Set(feedbackData.map(fb => fb.courseName))];
 
@@ -82,7 +118,7 @@ function FeedbackDetails() {
             Comprehensive insights into student feedback for courses and faculty members
           </p>
         </div>
-
+  
         {/* Dashboard Content */}
         <div className="bg-white rounded-2xl shadow-xl overflow-hidden">
           {/* Selection Panel */}
@@ -108,7 +144,7 @@ function FeedbackDetails() {
                   ))}
                 </div>
               </div>
-
+  
               {/* Faculty Selection */}
               {selectedCourse && (
                 <div className="mb-4">
@@ -133,11 +169,51 @@ function FeedbackDetails() {
               )}
             </div>
           </div>
-
-          {/* Feedback Display */}
+  
+          {/* Before/After Formula Comparison */}
           {selectedFaculty && (
             <div className="p-6">
               <div className="max-w-5xl mx-auto">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                  {/* Original Feedback Average */}
+                  <div className="bg-white p-6 rounded-xl shadow-md border border-blue-100">
+                    <div className="flex items-center mb-4">
+                      <div className="bg-blue-100 p-2 rounded-full mr-4">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                        </svg>
+                      </div>
+                      <h3 className="text-xl font-bold text-gray-800">Original Feedback</h3>
+                    </div>
+                    <p className="text-gray-600 mb-4">Average rating before adjustments:</p>
+                    <div className="text-4xl font-extrabold text-blue-600">
+                      {calculateOriginalAverage()*0.5}
+                      <span className="text-lg text-gray-500">/5</span>
+                    </div>
+                  </div>
+  
+                  {/* Adjusted Feedback Average */}
+                  <div className="bg-white p-6 rounded-xl shadow-md border border-purple-100">
+                    <div className="flex items-center mb-4">
+                      <div className="bg-purple-100 p-2 rounded-full mr-4">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-purple-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                        </svg>
+                      </div>
+                      <h3 className="text-xl font-bold text-gray-800">Adjusted Feedback</h3>
+                    </div>
+                    <p className="text-gray-600 mb-4">Average after applying formula:</p>
+                    <div className="text-4xl font-extrabold text-purple-600">
+                      {calculateAdjustedAverage()*0.5}
+                      <span className="text-lg text-gray-500">/5</span>
+                    </div>
+                    <div className="mt-3 text-sm text-gray-500">
+                      Formula: <code>OF × (1 + w1·attendance/100 + w2·CGPA/10 + w3·time/10)</code>
+                    </div>
+                  </div>
+                </div>
+  
+                {/* Feedback Details Section */}
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8">
                   <h2 className="text-2xl font-bold text-gray-800 mb-4 md:mb-0">
                     Feedback Analysis for <span className="text-indigo-600">{selectedCourse}</span> by <span className="text-purple-600">{selectedFaculty}</span>
@@ -146,7 +222,7 @@ function FeedbackDetails() {
                     {filteredFeedback.length} {filteredFeedback.length === 1 ? 'Response' : 'Responses'}
                   </div>
                 </div>
-
+  
                 {filteredFeedback.length > 0 ? (
                   <div className="space-y-6">
                     {filteredFeedback.map((fb, index) => (
@@ -188,7 +264,7 @@ function FeedbackDetails() {
                             </span>
                           </div>
                         </div>
-
+  
                         {/* Feedback Responses */}
                         <div>
                           <h4 className="text-md font-semibold text-gray-700 mb-3 flex items-center">
@@ -225,7 +301,7 @@ function FeedbackDetails() {
               </div>
             </div>
           )}
-
+  
           {/* Empty State */}
           {!selectedCourse && (
             <div className="p-12 text-center">
